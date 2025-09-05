@@ -1,0 +1,189 @@
+#==============================================================================#
+# 0. Dependencias ----
+#==============================================================================#
+# Instalación de paquetes necesarios para ejecutar el script. En caso de que
+# ya los tengas instalados comenta esta parte o sáltatela.
+install.packages("ape") # 'ape' es un paquete para trabajar con árboles
+                        # filogenéticos
+install.packages("canaper") # 'canaper' es un paquete que incorpora el cálculo
+                            # de métricas utilizadas en filogenia espacial
+install.packages("terra") # 'terra' se utilizará para hacer figuras con los
+                          # diferentes mapas que resultarán al final del taller
+
+
+
+#==============================================================================#
+# 1. Configuración inicial ----
+#==============================================================================#
+
+## 1.1. Activación de paquetes ----
+# En R es necesario cargar los paquetes que vayamos a utilizar en cada sesión,
+# por lo que vamos a proceder a cargar los paquetes que ya tenemos instalados.
+library(ape)
+library(canaper)
+library(terra)
+
+
+
+## 1.2. Cargar los datos ----
+# Establecer el directorio de trabajo utilizando la carpeta que hemos descargado
+# de GitHub: https://github.com/albertojcoello/sebot_edge_canape. Es importante
+# que utilicemos sólo las barras '/', ya que el otro tipo de barra ('\') dan
+# problemas en R a la hora de indicar directorios.
+setwd("/Users/ajcoello/github/sebot_edge_canape/")
+
+# Cargar los datos de distribución
+distribucion <- read.csv("./datos/distribucion.csv")
+
+# Cargar el árbol filogenético
+filogenia <- read.tree("./datos/filogenia.tre")
+
+# Mapas para hacer las figuras finales
+cuadricula <- vect("./datos/cuadricula.shp")
+fronteras <- vect("./datos/fronteras.shp")
+
+
+
+## 1.3. Preparación de los datos ----
+
+#### 1.3.1. Distribución ----
+# Lo primero que debemos hacer es eliminar aquellas áreas de nuestro territorio
+# de estudio que no tienen ningún taxón (ya que si no, los análisis siguientes
+# pueden fallar). Además, esto creará un nuevo objeto con la riqueza de taxones
+# que utilizaremos más adelante.
+
+# Calculamos la riqueza de taxones para cada área. Nótese que se elimina del
+# cálculo la primera columna que se corresponde con el nombre del área
+riqueza <- apply(distribucion[, -1], 1, sum)
+
+# Transformamos el vector de riqueza en un 'data frame' para poder trabajar
+# luego más fácilmente
+riqueza <- data.frame(
+    id      = distribucion$id,
+    riqueza = riqueza
+)
+
+# Mantenemos todas aquellas filas (áreas) que tienen un valor de riqueza de
+# tazones mayor de 0
+distribucion <- distribucion[riqueza$riqueza > 0, ]
+
+# Hacemos lo mismo con los datos de riqueza
+riqueza <- riqueza[riqueza$riqueza > 0, ]
+
+
+
+
+### 1.3.2. Cuadrícula ----
+# El siguiente paso va a ser asignar al mapa de la cuadrícula el nombre 'id'
+# para la variable correspondiente al nombre de las áreas (única variable que
+# tiene). Esto se hace porque así será más fácil combinar los datos cuando
+# hagamos los mapas.
+names(cuadricula) <- "id"
+
+# Además, es necesario también modificar el sistema de coordenadas para que
+# todas las capas tengan el mismo (en nuestro caso, vamos a utilizar el sistema
+# WGS84)
+cuadricula <- project(cuadricula, "+proj=longlat +datum=WGS84")
+fronteras <- project(fronteras, "+proj=longlat +datum=WGS84")
+
+
+
+#==============================================================================#
+# 2. Estadísticas básicas ----
+#==============================================================================#
+
+## 2.1. Riqueza de taxones ----
+
+#### 2.1.1. Mapa ----
+# Más arriba ($1.3) hemos calculado la riqueza de especies. Ahora vamos a pasar
+# a hacer el mapa para ver su distribución. Para ello, vamos a utilizar 'terra'
+# con distintas capas que ya tenemos cargadas.
+
+# Primero unimos agregamos los datos de riqueza a la cuadrícula, indicando que
+# vamos a usar cómo referencia el nombre de las áreas ('id')
+cuadricula <- merge(cuadricula, riqueza, by = "id", all.x = TRUE)
+
+# A continuación hacemos el mapa de riqueza
+plot(
+    cuadricula, "riqueza",                                   # Indicamos la capa
+                                                             # que vamos a
+                                                             # dibujar y la
+                                                             # variable
+    type   = "continuous",                                   # Tipo de variable
+    col    = colorRampPalette(c("#ACF3AC", "#027F02"))(100), # Colores mínimo y
+                                                             # máximo
+    border = NULL,                                           # Color de borde
+    axes   = FALSE,                                          # No dibujar ejes
+    legend = TRUE,                                           # Dibujar leyenda
+    main   = "Riqueza"                                       # Título
+)
+
+# Añadimos los límites de los países para crear un diseno más claro (se pueden
+# agregar tantas capas cómo se quiera)
+plot(
+    fronteras, # Capa que contiene las fronteras de los países
+    add = TRUE # Indicamos que se tiene que dibujar sobre el mapa que ya tenemos
+)
+
+
+
+## 2.2. Endemismo ponderado ----
+
+### 2.2.1 Cálculo ----
+# Para calcular el endemismo ponderado primero debemos calcular primero la
+# amplitud de la distrubución de cada taxón
+amplitud <- apply(distribucion[, -1], 2, sum)
+
+# A continuación pasamos esa amplitud de la distribución a su inverso para tener
+# una medida de la rareza de los taxones
+rareza <- 1/amplitud
+
+# El siguiente paso es hacer un nuevo data frame de distribución pero
+# sustituyendo los valores de presencia de los taxones por su valor de rareza
+endemismoPonderado <- distribucion
+for(i in names(distribucion)[-1]) {
+    value <- rareza[names(rareza) == i]
+    endemismoPonderado[names(endemismoPonderado) == i] <-
+        endemismoPonderado[names(endemismoPonderado) == i] * value
+}
+
+# Finalmente, se calcula la suma de valores de endemismo ponderado para cada
+# celda del territorio (se guarda en un data frame tal y cómo se ha hecho
+# anteriormente con la riqueza)
+endemismoPonderado <- data.frame(
+    id                 = endemismoPonderado$id,
+    endemismoPonderado = apply(endemismoPonderado[, -1], 1, sum)
+)
+
+
+
+### 2.2.2. Mapa ----
+# Finalmente, añadimos los valores de endemismo ponderado a nuestra cuadrícula,
+# creamos el mapa tal y cómo se ha hecho para la riqueza y añadimos la capa de
+# las fronteras de los países
+cuadricula <- merge(cuadricula, endemismoPonderado, by = "id", all.x = TRUE)
+plot(
+    cuadricula, "endemismoPonderado",
+    type   = "continuous",
+    col    = colorRampPalette(c("#edd8b4", "#594a31"))(100),
+    border = NULL,
+    axes   = FALSE,
+    legend = TRUE,
+    main   = "Endemismo Ponderado"
+)
+plot(
+    fronteras,
+    add = TRUE
+)
+
+
+
+
+
+
+
+
+
+
+
+
