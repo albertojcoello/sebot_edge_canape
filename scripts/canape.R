@@ -39,8 +39,8 @@ distribucion <- read.csv("./datos/distribucion.csv")
 filogenia <- read.tree("./datos/filogenia.tre")
 
 # Mapas para hacer las figuras finales
-cuadricula <- vect("./datos/cuadricula.shp")
-fronteras <- vect("./datos/fronteras.shp")
+cuadricula <- vect("./datos/shp/cuadricula.shp")
+fronteras <- vect("./datos/shp/fronteras.shp")
 
 
 
@@ -110,12 +110,12 @@ plot(
                                                              # dibujar y la
                                                              # variable
     type   = "continuous",                                   # Tipo de variable
-    col    = colorRampPalette(c("#ACF3AC", "#027F02"))(100), # Colores mínimo y
+    col    = colorRampPalette(c("#D1EDD1", "#0D4C0D"))(100), # Colores mínimo y
                                                              # máximo
     border = NULL,                                           # Color de borde
     axes   = FALSE,                                          # No dibujar ejes
     legend = TRUE,                                           # Dibujar leyenda
-    main   = "Riqueza"                                       # Título
+    main   = "Riqueza (R)"                                   # Título
 )
 
 # Añadimos los límites de los países para crear un diseno más claro (se pueden
@@ -165,11 +165,11 @@ cuadricula <- merge(cuadricula, endemismoPonderado, by = "id", all.x = TRUE)
 plot(
     cuadricula, "endemismoPonderado",
     type   = "continuous",
-    col    = colorRampPalette(c("#edd8b4", "#594a31"))(100),
+    col    = colorRampPalette(c("#F5EBDC", "#594a31"))(100),
     border = NULL,
     axes   = FALSE,
     legend = TRUE,
-    main   = "Endemismo Ponderado"
+    main   = "Endemismo Ponderado (WE)"
 )
 plot(
     fronteras,
@@ -178,12 +178,111 @@ plot(
 
 
 
+#==============================================================================#
+# 3. Estadísticas avanzadas ----
+#==============================================================================#
+
+## 3.1. Iteraciones ----
+# En primer lugar se ha de generar una simulación vara establecer el número de
+# iteraciones necesarias para asegurar que se genera una distribución nula
+# apropiada para nuestros datos
+
+
+### 3.1.1. Cálculo ----
+# Definir los parámetros para establecer las simulaciones
+models <- c("swap", "curveball")
+iterations <- c(10000, 100000, 1000000)
+
+# Crear una lista vacía para guardar los resultados
+simulacion_iteraciones <- list()
+
+# Generar todas las posibles combinaciones de modelos e iteraciones
+for(i in models) {
+    for(j in iterations) {
+        # Indicamos un mensaje para mostrar que ha comenzado el proceso
+        cat(paste0(i, " (", j, " iteraciones)"), sep = "")
+        
+        r <- cpr_iter_sim(
+            comm         = distribucion[, -1], # Datos de distribución
+            null_model   = i,                  # Tipo de modelo
+            n_iterations = j,                  # Número de iteraciones
+            thin         = max(j/100, 1)       # Frecuencia de muestreo de las
+                                               # iteraciones
+        )
+        simulacion_iteraciones[[length(simulacion_iteraciones) + 1]] <- r
+        names(simulacion_iteraciones)[length(simulacion_iteraciones)] <- 
+            paste0(i, "_", j)
+        
+        # Indicamos un mensaje para mostrar que ha finalizado el proceso
+        cat(" ✓", sep = "\n")
+    }
+}
+
+### 3.1.2. Gráfico ----
+# El siguiente paso va a ser generar un gráfico para ver que modelo y valor de
+# iteraciones vamos a utilizar para hacer el test de aleatorización
+
+# Primero dividimos la ventana de gráficos para mostrarlos todos de manera
+# simultánea
+par(mfrow = c(length(models), length(iterations)))
+
+# Corremos un bucle para dibujar todos los gráficos
+for(i in 1:length(simulacion_iteraciones)) {
+    plot(
+        x    = simulacion_iteraciones[[i]][[1]], # Iteraciones
+        y    = simulacion_iteraciones[[i]][[2]], # Resultado de similaridad
+        type = "l",                              # Indicar que es un gráfico de
+                                                 # tipo línea
+        main = names(simulacion_iteraciones)[i], # Nombre del gráfico (modelo e
+                                                 # iteraciones máximas)
+        xlab = "Iteraciones",                    # Etiqueta del eje X
+        ylab = "% Similaridad"                   # Etiqueta del eje Y
+    )
+}
 
 
 
+## 3.2. Test de aleatorización ----
+# Una vez se ha hecho la simulación del número de iteraciones se puede elegir
+# el modelo y el número de iteraciones que se van a utilizar para nuestro
+# análisis. En este caso concreto vamos a usar un modelo Curveball y 60 000
+# iteraciones.
+
+# Para correr el test de aleatorización usamos el siguiente comando
+aleatorizacion <- cpr_rand_test(
+    comm         = distribucion[, -1], # Datos de distribución
+    phy          = filogenia,          # Filogenia
+    null_model   = "curveball",        # Modelo para calcular iteraciones
+    n_reps       = 999,                # Número de comunidades aleatorias a
+                                       # replicar
+    n_iterations = 60000,              # Número de iteraciones del modelo nulo
+    thin         = 1,                  # Parámetro de thinning (no necesario ni
+                                       # para swap ni curveball)
+    metrics      = c("pd",             # Métricas a calcular
+                     "rpd",
+                     "pe",
+                     "rpe"),
+    tbl_out      = FALSE,              # FALSE: generar un data frame en lugar
+                                       # de una tibble
+    quiet        = FALSE               # FALSE: mostrar los posibles errores
+)
+
+# Modificamos el nombre de las filas para que se correspondan con el nombre de
+# las cuadrículas
+row.names(aleatorizacion) <- distribucion[[1]]
+
+# Una vez termine el test de aleatorización debemos guardarlo en nuestro
+# ordenador para así poder acceder a él en un futuro sin tener que repetir todo
+# el proceso
+write.csv(aleatorizacion, "./resultados/aleatorizacion.csv")
+
+# En caso de volver a querer cargar los datos más adelante utilizaremos las
+# siguientes líneas
+aleatorizacion <- read.csv("./resultados/aleatorizacion.csv")
+row.names(aleatorizacion) <- aleatorizacion[[1]]
+aleatorizacion <- aleatorizacion[, -1]
 
 
-
-
+## 3.3. Diversidad filogenética ----
 
 
