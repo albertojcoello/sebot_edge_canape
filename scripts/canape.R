@@ -110,7 +110,7 @@ plot(
                                                              # dibujar y la
                                                              # variable
     type   = "continuous",                                   # Tipo de variable
-    col    = colorRampPalette(c("#D1EDD1", "#0D4C0D"))(100), # Colores mínimo y
+    col    = colorRampPalette(c("#F5EBDC", "#594a31"))(100), # Colores mínimo y
                                                              # máximo
     border = NULL,                                           # Color de borde
     axes   = FALSE,                                          # No dibujar ejes
@@ -267,22 +267,165 @@ aleatorizacion <- cpr_rand_test(
     quiet        = FALSE               # FALSE: mostrar los posibles errores
 )
 
-# Modificamos el nombre de las filas para que se correspondan con el nombre de
-# las cuadrículas
-row.names(aleatorizacion) <- distribucion[[1]]
+# Añadimos el nombre de las celdas a los resultados del test de aleatorización
+aleatorizacion$id <- distribucion[[1]]
+
+# Lo siguiente que vamos a hacer es calcular los niveles de significación para
+# cada celda para las diferentes métricas que hemos calculado, ya que los
+# utilizaremos posteriormente para hacer los mapas
+
+# Diversidad filogenética
+aleatorizacion <- cpr_classify_signif(aleatorizacion, c("pd"))
+
+# Endemismo filogenético
+aleatorizacion <- cpr_classify_signif(aleatorizacion, c("pe"))
+
+# Diversidad filogenética relativa
+aleatorizacion <- cpr_classify_signif(aleatorizacion, c("rpd"))
+
+# Endemismo filogenético relativo
+aleatorizacion <- cpr_classify_signif(aleatorizacion, c("rpe"))
+
+# Categorización de centros de endemismo
+aleatorizacion <- cpr_classify_endem(aleatorizacion)
 
 # Una vez termine el test de aleatorización debemos guardarlo en nuestro
 # ordenador para así poder acceder a él en un futuro sin tener que repetir todo
 # el proceso
-write.csv(aleatorizacion, "./resultados/aleatorizacion.csv")
+write.csv(aleatorizacion, "./resultados/aleatorizacion.csv", row.names = FALSE)
 
 # En caso de volver a querer cargar los datos más adelante utilizaremos las
 # siguientes líneas
 aleatorizacion <- read.csv("./resultados/aleatorizacion.csv")
-row.names(aleatorizacion) <- aleatorizacion[[1]]
-aleatorizacion <- aleatorizacion[, -1]
+
+# Finalmente, unificamos la información del test de aleatorización con la
+# cuadrícula
+cuadricula <- merge(cuadricula, aleatorizacion, by = "id", all.x = TRUE)
 
 
-## 3.3. Diversidad filogenética ----
+
+## 3.3. Mapas ----
+# Finalmente procederemos a dibujar los mapas finales de todas las variables
+# típicad de filogenia espacial que quedaban por mostrar.
+
+### 3.3.1. Diversidad filogenética ----
+plot(
+    cuadricula, "pd_obs",
+    type   = "continuous",
+    col    = colorRampPalette(c("#F5EBDC", "#594a31"))(100),
+    border = NULL,
+    axes   = FALSE,
+    legend = TRUE,
+    main   = "Diversidad filogenética (PD)"
+)
+plot(
+    fronteras,
+    add = TRUE
+)
 
 
+
+### 3.3.2. Diversidad filogenética (significación) ----
+plot(
+    cuadricula, "pd_signif",
+    type   = "classes",
+    sort   = c("< 0.01", "< 0.025", "not significant", "> 0.975", "> 0.99"),
+    col    = c("#8b0000", "#ff0000", "#fafad2", "#4876ff", "#27408b"),
+    border = NULL,
+    axes   = FALSE,
+    legend = TRUE,
+    main   = "Diversidad filogenética (PD)"
+)
+plot(
+    fronteras,
+    add = TRUE
+)
+
+
+
+### 3.3.3. Endemismo filogenético ----
+plot(
+    cuadricula, "pe_obs",
+    type   = "continuous",
+    col    = colorRampPalette(c("#F5EBDC", "#594a31"))(100),
+    border = NULL,
+    axes   = FALSE,
+    legend = TRUE,
+    main   = "Endemismo filogenético (PE)"
+)
+plot(
+    fronteras,
+    add = TRUE
+)
+
+
+
+### 3.3.4. Endemismo filogenético (significación) ----
+plot(
+    cuadricula, "pe_signif",
+    type   = "classes",
+    sort   = c("< 0.01", "< 0.025", "not significant", "> 0.975", "> 0.99"),
+    col    = c("#8b0000", "#ff0000", "#fafad2", "#4876ff", "#27408b"),
+    border = NULL,
+    axes   = FALSE,
+    legend = TRUE,
+    main   = "Endemismo filogenético (PE)"
+)
+plot(
+    fronteras,
+    add = TRUE
+)
+
+
+
+### 3.3.5. Diversidad filogenética relativa ----
+plot(
+    cuadricula, "rpd_signif",
+    type   = "classes",
+    sort   = c("< 0.01", "< 0.025", "not significant", "> 0.975", "> 0.99"),
+    col    = c("#8b0000", "#ff0000", "#fafad2", "#4876ff", "#27408b"),
+    border = NULL,
+    axes   = FALSE,
+    legend = TRUE,
+    main   = "Diversidad filogenética relativa (RPD)"
+)
+plot(
+    fronteras,
+    add = TRUE
+)
+
+
+
+### 3.3.6. Endemismo filogenético relativo ----
+plot(
+    cuadricula, "rpe_signif",
+    type   = "classes",
+    sort   = c("< 0.01", "< 0.025", "not significant", "> 0.975", "> 0.99"),
+    col    = c("#8b0000", "#ff0000", "#fafad2", "#4876ff", "#27408b"),
+    border = NULL,
+    axes   = FALSE,
+    legend = TRUE,
+    main   = "Endemismo filogenético relativo (RPE)"
+)
+plot(
+    fronteras,
+    add = TRUE
+)
+
+
+
+### 3.3.7. CANAPE
+plot(
+    cuadricula, "endem_type",
+    type   = "classes",
+    sort   = c("neo", "paleo", "not significant", "mixed", "super"),
+    col    = c("#ff0000", "#4876ff", "#fafad2", "#cb7fff", "#9d00ff"),
+    border = NULL,
+    axes   = FALSE,
+    legend = TRUE,
+    main   = "CANAPE"
+)
+plot(
+    fronteras,
+    add = TRUE
+)
