@@ -21,7 +21,7 @@ material necesario para realizar el taller. En caso de querer realizar el taller
 disponer de una filogenia para un grupo de estudio y una base de datos de distribución de sus especies.
 
 # Descarga
-Se recomienda que los asistentes se descarguen el contenido de este repositorio a su propio ordenador. 
+Se recomienda que los asistentes descarguen el contenido de este repositorio a su propio ordenador. 
 Para ello, basta con hacer clic en el botón verde de la parte superior derecha de la pantalla que dice "Code",
 el cual abrirá una pequeña ventana desde la que podremos descargar el repositorio completo en formato comprimido ("Download ZIP"). 
 En caso de querer clonar el respositorio directamente desde una terminal, utilizar el siguiente código:
@@ -30,7 +30,21 @@ En caso de querer clonar el respositorio directamente desde una terminal, utiliz
 git clone https://github.com/albertojcoello/sebot_edge_canape.git
 ```
 
+# Dependencias
+El código que utilizaremos requiere que se tengan instalados una serie de paquetes, los cuales se indican en el script de cada sección, pero se pueden instalar directamente en R con las siguientes líneas:
+
+```R
+install.packages("ape")
+install.packages("canaper")
+install.packages("terra")
+install.packages("tidyverse")
+install.packages("devtools")
+install.packages("remotes")
+devtools::install_github("https://github.com/iramosgutierrez/EDGEcalc/")
+```
+
 # Contacto
 - **Alberto J. Coello:** coellogarridoa@si.edu, albjcoello@gmail.com
 - **Ignacio Ramos-Gutiérrez:** ignacio.ramosgutierrez@uam.es, ig.ramosgutierrez@gmail.com
 - **Mario Fernández-Mazuecos:** mfmazuecos@rjb.csic.es
+
