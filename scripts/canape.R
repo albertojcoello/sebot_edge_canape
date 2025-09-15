@@ -306,7 +306,7 @@ cuadricula <- merge(cuadricula, aleatorizacion, by = "id", all.x = TRUE)
 
 ## 3.3. Mapas ----
 # Finalmente procederemos a dibujar los mapas finales de todas las variables
-# típicad de filogenia espacial que quedaban por mostrar.
+# típicas de filogenia espacial que quedaban por mostrar.
 
 ### 3.3.1. Diversidad filogenética ----
 plot(
@@ -415,6 +415,8 @@ plot(
 
 
 ### 3.3.7. CANAPE
+#### 3.3.7.1 Mapa ----
+# Primero dibujamos el mapa de la clasificación de centros de endemismos.
 plot(
     cuadricula, "endem_type",
     type   = "classes",
@@ -429,3 +431,62 @@ plot(
     fronteras,
     add = TRUE
 )
+
+#### 3.3.7.2 Gráfico ----
+# El segundo gráfico se corresponde con los valores de PE para el árbol original
+# y el alternativo sin longitudes de rama, junto con la clasificación de esas
+# áreas.
+
+# Primero se dibuja el gráfico en blanco para definir el área
+plot(
+    x    = cuadricula$pe_alt_obs,      # Datos del árbol alternativo (sin
+                                       # longitudes de rama) para el eje X
+    y    = cuadricula$pe_obs,          # Datos del árbol original para el eje Y
+    log  = "xy",                       # Puesto que en nuestros datos hay unos
+                                       # pocos valores muy extremos vamos a usar
+                                       # una escala logarítmica en ambos ejes
+    pch  = 20,                         # Queremos que los puntos se dibujen
+                                       # cómo círculos sin borde
+    col  = NULL,                       # No asignamos ningún color para que el
+                                       # gráfico se dibuje vacío
+    xlab = "PE del árbol alternativo", # Etiqueta del eje X
+    ylab = "PE del árbol original"     # Etiqueta del eje Y
+)
+
+# A continuación se añaden los puntos correspondientes a las diferentes
+# categorías (los no significativos se han puesto en color más oscuro para que
+# se distingan del fondo)
+points(
+    x = cuadricula$pe_alt_obs[cuadricula$endem_type == "not significant"],
+    y = cuadricula$pe_obs[cuadricula$endem_type == "not significant"],
+    pch = 20,
+    col = "#fafad2"
+)
+points(
+    x = cuadricula$pe_alt_obs[cuadricula$endem_type == "mixed"],
+    y = cuadricula$pe_obs[cuadricula$endem_type == "mixed"],
+    pch = 20,
+    col = "#cb7fff"
+)
+points(
+    x = cuadricula$pe_alt_obs[cuadricula$endem_type == "super"],
+    y = cuadricula$pe_obs[cuadricula$endem_type == "super"],
+    pch = 20,
+    col = "#9d00ff"
+)
+points(
+    x = cuadricula$pe_alt_obs[cuadricula$endem_type == "neo"],
+    y = cuadricula$pe_obs[cuadricula$endem_type == "neo"],
+    pch = 20,
+    col = "#ff0000"
+)
+points(
+    x = cuadricula$pe_alt_obs[cuadricula$endem_type == "paleo"],
+    y = cuadricula$pe_obs[cuadricula$endem_type == "paleo"],
+    pch = 20,
+    col = "#4876ff"
+)
+
+
+
+
