@@ -39,12 +39,12 @@ install.packages("canaper")
 install.packages("terra")
 install.packages("tidyverse")
 install.packages("devtools")
-install.packages("remotes")
-devtools::install_github("https://github.com/iramosgutierrez/EDGEcalc/")
+install.packages("utils")
 ```
 
 # Contacto
 - **Alberto J. Coello:** coellogarridoa@si.edu, albjcoello@gmail.com
 - **Ignacio Ramos-Gutiérrez:** ignacio.ramosgutierrez@uam.es, ig.ramosgutierrez@gmail.com
 - **Mario Fernández-Mazuecos:** mfmazuecos@rjb.csic.es
+
 
